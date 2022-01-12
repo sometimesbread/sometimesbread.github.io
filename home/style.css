@@ -1,0 +1,24 @@
+body
+{
+	background-color:#2e2e2e;
+}
+
+.text
+{
+	font-family:arial;
+	text-align:left;
+	font-size:30px;
+	color:white;
+
+	padding:10px 50px
+}
+
+.hyperlink
+{
+	font-family:sans-serif;
+	text-align:center;
+	font-size:25px;
+	color:yellow;
+
+	padding:10px 50px
+}
