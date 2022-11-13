@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+
+<head>
+    <title>Desmos 3D Renderer</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<html>
+    <p class = "toptext">Desmos 3D Renderer!</p>
+
+    <p class = "smalltext">
+        Check out the code at
+        <a href="https://github.com/stupidjuice/Desmos-3D-Renderer" target = _blank>
+            this GitHub repo
+        </a>
+    </p>
+    
+    <div id = "calculator" class = "calculator"></div>
+    <script src = "https://www.desmos.com/api/v1.7/calculator.js?apiKey=dcb31709b452b1cf9dc26972add0fda6"></script>
+    <script src = "main.js"></script>
+    
+    <div>
+        <p class = "options">Options:</p>
+        <p class = "option">Fill Opacity:
+            <input type="range" min="0" max="100" value="100" class="slider" id="opacity">
+            <p1 id = "opacitytext">100%</p2>
+        </p>
+
+        <p class = "option">Line Thickness:
+            <input type="range" min="1" max="10" value="1" class="slider" id="linethick">
+            <p1 id = "linethicktext">100%</p2>
+        </p>
+    </div>
+
+    
+</html>
