@@ -9,7 +9,7 @@ const ScreenWidth = 20.0;
 const FrameDelay = 0.01; //seconds
 
 //render vars
-var ElapsedTime = 0.0;
+let ElapsedTime = 0.0;
 const minBrightness = 10;
 
 class mat4x4
@@ -48,13 +48,13 @@ class mesh
 }
 
 //projection matrix
-var fNear = 0.1;
-var fFar = 1000.0;
-var fFov = 90.0;
-var fAspectRatio = ScreenHeight / ScreenWidth;
-var fFovRad = 1.0 / Math.tan(fFov * 0.5 / 180.0 * Math.PI);
+let fNear = 0.1;
+let fFar = 1000.0;
+let fFov = 90.0;
+let fAspectRatio = ScreenHeight / ScreenWidth;
+let fFovRad = 1.0 / Math.tan(fFov * 0.5 / 180.0 * Math.PI);
 
-var matProj = new mat4x4();
+let matProj = new mat4x4();
 
 matProj.m[0][0] = fAspectRatio * fFovRad;
 matProj.m[1][1] = fFovRad;
@@ -64,31 +64,9 @@ matProj.m[2][3] = 1.0;
 matProj.m[3][3] = 0.0;
 
 //cube:
-var meshCube = new mesh();
-
-//south
-meshCube.tris.push(GetTriangle([0.0, 0.0, 0.0], [0.0, 1.0, 0.0], [1.0, 1.0, 0.0]));
-meshCube.tris.push(GetTriangle([0.0, 0.0, 0.0], [1.0, 1.0, 0.0], [1.0, 0.0, 0.0]));
-
-//east
-meshCube.tris.push(GetTriangle([1.0, 0.0, 0.0], [1.0, 1.0, 0.0], [1.0, 1.0, 1.0]));
-meshCube.tris.push(GetTriangle([1.0, 0.0, 0.0], [1.0, 1.0, 1.0], [1.0, 0.0, 1.0]));
-
-//north
-meshCube.tris.push(GetTriangle([1.0, 0.0, 1.0], [1.0, 1.0, 1.0], [0.0, 1.0, 1.0]));
-meshCube.tris.push(GetTriangle([1.0, 0.0, 1.0], [0.0, 1.0, 1.0], [0.0, 0.0, 1.0]));
-
-//west
-meshCube.tris.push(GetTriangle([0.0, 0.0, 1.0], [0.0, 1.0, 1.0], [0.0, 1.0, 0.0]));
-meshCube.tris.push(GetTriangle([0.0, 0.0, 1.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]));
-
-//top
-meshCube.tris.push(GetTriangle([0.0, 1.0, 0.0], [0.0, 1.0, 1.0], [1.0, 1.0, 1.0]));
-meshCube.tris.push(GetTriangle([0.0, 1.0, 0.0], [1.0, 1.0, 1.0], [1.0, 1.0, 0.0]));
-
-//bottom
-meshCube.tris.push(GetTriangle([1.0, 0.0, 1.0], [0.0, 0.0, 1.0], [0.0, 0.0, 0.0]));
-meshCube.tris.push(GetTriangle([1.0, 0.0, 1.0], [0.0, 0.0, 0.0], [1.0, 0.0, 0.0]));
+let meshCube = new mesh();
+let meshcubeobj = "# Blender v3.0.1 OBJ File: ''\n# www.blender.org\nmtllib model.mtl\no Cube\nv 1.000000 1.000000 -1.000000\nv 1.000000 -1.000000 -1.000000\nv 1.000000 1.000000 1.000000\nv 1.000000 -1.000000 1.000000\nv -1.000000 1.000000 -1.000000\nv -1.000000 -1.000000 -1.000000\nv -1.000000 1.000000 1.000000\nv -1.000000 -1.000000 1.000000\nf 5 3 1\nf 3 8 4\nf 7 6 8\nf 2 8 6\nf 1 4 2\nf 5 2 6\nf 5 7 3\nf 3 7 8\nf 7 5 6\nf 2 4 8\nf 1 3 4\nf 5 1 2";
+meshCube = GetMeshFromOBJ(meshcubeobj);
 
 //returns latex of a triangle
 function GetTriangleLatex(x1, y1, x2, y2, x3, y3)
@@ -96,10 +74,10 @@ function GetTriangleLatex(x1, y1, x2, y2, x3, y3)
     return '\\polygon((' + x1.toString() + ', ' + y1.toString() + '), (' + x2.toString() + ', ' + y2.toString() + '), (' + x3.toString() + ', ' + y3.toString() + '))';
 }
 
-//creates a bunch of points to use later
+//creates a bunch of points to use later    
 function Initialize()
 {
-    for(let i = 0; i < maxTriangles; i++)
+    for(let i = 0; i < maxTriangles << 1; i++)
     {
         calculator.setExpression({id: i.toString(), latex: '(-10, 0)', color:'#000000'});    
     }
@@ -137,13 +115,45 @@ function GetTriangle(p1, p2, p3)
     return new triangle(new vector3(p1[0], p1[1], p1[2]), new vector3(p2[0], p2[1], p2[2]), new vector3(p3[0], p3[1], p3[2]));
 }
 
-//---------------------------------------ACTUAL RENDERING CODE---------------------------------------
+/**
+ * @param {string} objStr
+ */
+function GetMeshFromOBJ(objStr)
+{
+    let objArray = objStr.split('\n');
+    let verts = [];
+    let faces = [];
+    let returnmesh = new mesh();
 
+    for(let i = 0; i < objArray.length; i++)
+    {
+        let objLine = objArray[i].split(' ')
+        if(objLine[0] == 'v')
+        {
+            verts.push([objLine[1], objLine[2], objLine[3]]);
+        }
+        else if (objLine[0] == 'f')
+        {
+            faces.push(GetTriangle(verts[objLine[1] - 1], verts[objLine[2] - 1], verts[objLine[3] - 1]));
+        }
+    }
+
+    returnmesh.tris = faces;
+    return returnmesh;
+}
+
+//---------------------------------------ACTUAL RENDERING CODE---------------------------------------
 Initialize();
-var vCamera = new vector3()
-var light_direction = new vector3(-1.0, 0.5, -1.0)
+let vCamera = new vector3()
+let light_direction = new vector3(-1.0, 0.5, -1.0)
+//normalize light direction (or else the lighting will be extremely overdone)
 let len = Math.sqrt(light_direction.x * light_direction.x + light_direction.y * light_direction.y + light_direction.z * light_direction.z);
 light_direction.x /= len; light_direction.y /= len; light_direction.z /= len;
+
+let numLabeledVerts = 0;
+let prevNumLabeledVerts = 0;
+
+let hasReadFile = false;
 
 //main loop
 setInterval(function() {
@@ -152,16 +162,36 @@ setInterval(function() {
     document.getElementById('opacitytext').innerHTML = opacity.toString() + '%';
 
     let lineThickness = document.getElementById('linethick').value;
-    document.getElementById('linethicktext').innerHTML = lineThickness.toString() + " pixels"; 
+    document.getElementById('linethicktext').innerHTML = lineThickness.toString() + ' pixels'; 
+
+    let labelVerts = document.getElementById('labelverts').checked;
+    let labeledCoords = [];
+
+    //read upload file
+    var fileupload = document.getElementById("uploadfile");
+    fileupload.addEventListener('change',function() {
+        var fileReader=new FileReader();
+        fileReader.onload=function(){
+            if(!hasReadFile)
+            {
+                console.log(meshCube.tris);
+                console.log("owo");
+                hasReadFile = true;
+                meshCube = GetMeshFromOBJ(fileReader.result.toString());
+                console.log(meshCube.tris);
+            }
+        }
+        fileReader.readAsText(this.files[0]);
+    })
+    
 
     //----RENDER----
     //update variables
     ElapsedTime += FrameDelay;
-    let TimeScale = 1;
+    let TimeScale = 3;
 
-    //render
-    var matRotZ = new mat4x4();
-    var matRotX = new mat4x4();
+    let matRotZ = new mat4x4();
+    let matRotX = new mat4x4();
 
 	//rotation Z
 	matRotZ.m[0][0] = Math.cos(ElapsedTime * TimeScale);
@@ -178,6 +208,10 @@ setInterval(function() {
 	matRotX.m[2][1] = -Math.sin(ElapsedTime * 0.5 * TimeScale);
 	matRotX.m[2][2] = Math.cos(ElapsedTime * 0.5 * TimeScale);
 	matRotX.m[3][3] = 1;
+
+    //triangles to sort later
+    let vecTrianglesToRaster = [];
+    let indicesToDraw = [];
 
     for(let i = 0; i < meshCube.tris.length; i++)
     {
@@ -199,7 +233,7 @@ setInterval(function() {
 		triRotatedZX.p[1] = MultiplyMatrixVector(triRotatedZ.p[1], matRotX);
 		triRotatedZX.p[2] = MultiplyMatrixVector(triRotatedZ.p[2], matRotX);
 
-        //translate forward
+        //translate forward away from camera
         triTranslated = triRotatedZX;
         triTranslated.p[0].z = triRotatedZX.p[0].z + 3.0;
         triTranslated.p[1].z = triRotatedZX.p[1].z + 3.0;
@@ -230,14 +264,14 @@ setInterval(function() {
         if(normal.x * (triTranslated.p[0].x - vCamera.x) + normal.y * (triTranslated.p[0].y - vCamera.y) + normal.z * (triTranslated.p[0].z - vCamera.z) < 0.0)
 		{
             //lighting
-            let brightness = Math.round((normal.x * light_direction.x + normal.y * light_direction.y + normal.z * light_direction.z) * 150 + minBrightness);
-            let brightnessRGB = Math.min((brightness << 16) + (brightness << 8) + brightness, 16777215).toString(16)
+            let brightness = Math.max(Math.min(Math.round((normal.x * light_direction.x + normal.y * light_direction.y + normal.z * light_direction.z) * 150 + minBrightness), 255), 0);
+            let brightnessRGB = ((brightness << 16) + (brightness << 8) + brightness).toString(16);
 
             //project
             triProjected.p[0] = MultiplyMatrixVector(triRotatedZX.p[0], matProj);
             triProjected.p[1] = MultiplyMatrixVector(triRotatedZX.p[1], matProj);
             triProjected.p[2] = MultiplyMatrixVector(triRotatedZX.p[2], matProj);
-
+            
             //bring the cube into the screen
             triProjected.p[0].x += 1.0; triProjected.p[0].y += 1.0;
 	        triProjected.p[1].x += 1.0; triProjected.p[1].y += 1.0;
@@ -248,9 +282,19 @@ setInterval(function() {
 	        triProjected.p[1].y *= 0.5 * ScreenHeight;
 	        triProjected.p[2].x *= 0.5 * ScreenWidth;
 	        triProjected.p[2].y *= 0.5 * ScreenHeight;
+
+            //if the label vertices button is pressed, add the triangles' points to this array
+            if(labelVerts)
+            {
+                labeledCoords.push('(' + triProjected.p[0].x.toString() + ', ' + triProjected.p[0].y.toString() + ')');
+                labeledCoords.push('(' + triProjected.p[1].x.toString() + ', ' + triProjected.p[1].y.toString() + ')');
+                labeledCoords.push('(' + triProjected.p[2].x.toString() + ', ' + triProjected.p[2].y.toString() + ')');
+            }
         
-            //Draw the thing
-            calculator.setExpression({id: i.toString(), latex: GetTriangleLatex(triProjected.p[0].x, triProjected.p[0].y, triProjected.p[1].x, triProjected.p[1].y, triProjected.p[2].x, triProjected.p[2].y), color: '#' + brightnessRGB, fillOpacity: opacity/100, lineWidth: lineThickness});
+            //Add triangle to list to be sorted and then drawn
+            triProjected.col = brightnessRGB;
+            vecTrianglesToRaster.push(triProjected);
+            indicesToDraw.push(i);
         }
         //if the face is not facing the camera, make it a black dot thats off the screen so its not in the way
         else
@@ -258,4 +302,48 @@ setInterval(function() {
             calculator.setExpression({id: i.toString(), latex: '(-10, 0)', color:'#000000'}); 
         }
     }
+
+    //for some reason, sorting makes the lighting break. (FIX ME) maybe use this idk https://stackoverflow.com/questions/11499268/sort-two-arrays-the-same-way
+    vecTrianglesToRaster.sort((t1, t2) => (((t1.p[0].z + t1.p[1].z + t1.p[2].z) / 3.0) > ((t2.p[0].z + t2.p[1].z + t2.p[2].z) / 3.0)) ? -1 : 1);
+
+    console.log(vecTrianglesToRaster)
+
+    for(let i = 0; i < vecTrianglesToRaster.length; i++)
+    {
+        calculator.setExpression({id: indicesToDraw[i], latex: GetTriangleLatex(vecTrianglesToRaster[i].p[0].x, vecTrianglesToRaster[i].p[0].y, vecTrianglesToRaster[i].p[1].x, vecTrianglesToRaster[i].p[1].y, vecTrianglesToRaster[i].p[2].x, vecTrianglesToRaster[i].p[2].y), color: '#' + vecTrianglesToRaster[i].col, fillOpacity: opacity / 100, lineWidth: lineThickness});
+    }
+
+    if(labelVerts)
+    {
+        //use this hack to remove duplicates from the array of vertices
+        let uniqueCoords = [...new Set(labeledCoords)];
+        numLabeledVerts = uniqueCoords.length;
+
+        for(let i = 0; i < numLabeledVerts; i++)
+        {
+            if(i < uniqueCoords.length)
+            {
+                calculator.setExpression({id: (i+maxTriangles).toString(), latex: uniqueCoords[i], showLabel: true});
+            }
+        }
+        //remove any verts that have disappeared from the screen (ex. if they are hidden behind a face on the cube)
+        if(prevNumLabeledVerts - numLabeledVerts > 0)
+        {
+            for(let i = 0; i < prevNumLabeledVerts - numLabeledVerts; i++)
+            {
+                calculator.setExpression({id: (i+maxTriangles+numLabeledVerts).toString(), latex: '(-10, 0)', color:'#000000'});
+            }
+        }
+        prevNumLabeledVerts = numLabeledVerts;
+    }
+    else
+    {
+        //when the label verts button is unchecked, hide all of the verts
+        for(let i = 0; i < numLabeledVerts; i++)
+        {
+            calculator.setExpression({id: (i+maxTriangles).toString(), latex: '(-10, 0)', color:'#000000'});
+        }
+        numLabeledVerts = 0;
+    }
+    
 }, FrameDelay * 1000);
