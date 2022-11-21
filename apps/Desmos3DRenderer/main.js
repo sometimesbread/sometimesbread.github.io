@@ -11,6 +11,17 @@ const FrameDelay = 0.01; //seconds
 let ElapsedTime = 0.0;
 const minBrightness = 10;
 
+//rotation
+//conversion between degrees and radians
+const Deg2Rad = Math.PI / 180;
+const Rad2Deg = 180 / Math.PI;
+const FullRotRad = 360 * Deg2Rad;
+
+let autoRotate = true;
+let modelRotX = 0;
+let modelRotY = 0;
+let modelRotZ = 0;
+
 class mat4x4
 {
     constructor()
@@ -63,9 +74,9 @@ matProj.m[3][2] = (-fFar * fNear) / (fFar - fNear);
 matProj.m[2][3] = 1.0;
 matProj.m[3][3] = 0.0;
 
-//cube:
+//cube
 let meshCube = new mesh();
-let meshcubeobj = "# Blender v3.0.1 OBJ File: ''\n# www.blender.org\nmtllib model.mtl\no Cube\nv 1.000000 1.000000 -1.000000\nv 1.000000 -1.000000 -1.000000\nv 1.000000 1.000000 1.000000\nv 1.000000 -1.000000 1.000000\nv -1.000000 1.000000 -1.000000\nv -1.000000 -1.000000 -1.000000\nv -1.000000 1.000000 1.000000\nv -1.000000 -1.000000 1.000000\nf 5 3 1\nf 3 8 4\nf 7 6 8\nf 2 8 6\nf 1 4 2\nf 5 2 6\nf 5 7 3\nf 3 7 8\nf 7 5 6\nf 2 4 8\nf 1 3 4\nf 5 1 2";
+let meshcubeobj = "v 1.000000 1.000000 -1.000000\nv 1.000000 -1.000000 -1.000000\nv 1.000000 1.000000 1.000000\nv 1.000000 -1.000000 1.000000\nv -1.000000 1.000000 -1.000000\nv -1.000000 -1.000000 -1.000000\nv -1.000000 1.000000 1.000000\nv -1.000000 -1.000000 1.000000\nf 5 3 1\nf 3 8 4\nf 7 6 8\nf 2 8 6\nf 1 4 2\nf 5 2 6\nf 5 7 3\nf 3 7 8\nf 7 5 6\nf 2 4 8\nf 1 3 4\nf 5 1 2";
 meshCube = GetMeshFromOBJ(meshcubeobj);
 
 //returns latex of a triangle
@@ -83,24 +94,17 @@ function MultiplyMatrixVector(i, m)
 {
     temp = new vector3();
     temp.x = i.x * m.m[0][0] + i.y * m.m[1][0] + i.z * m.m[2][0] + m.m[3][0];
-	temp.y = i.x * m.m[0][1] + i.y * m.m[1][1] + i.z * m.m[2][1] + m.m[3][1];
-	temp.z = i.x * m.m[0][2] + i.y * m.m[1][2] + i.z * m.m[2][2] + m.m[3][2];
-	w =      i.x * m.m[0][3] + i.y * m.m[1][3] + i.z * m.m[2][3] + m.m[3][3];
+    temp.y = i.x * m.m[0][1] + i.y * m.m[1][1] + i.z * m.m[2][1] + m.m[3][1];
+    temp.z = i.x * m.m[0][2] + i.y * m.m[1][2] + i.z * m.m[2][2] + m.m[3][2];
+    w =      i.x * m.m[0][3] + i.y * m.m[1][3] + i.z * m.m[2][3] + m.m[3][3];
 
-	if (w != 0.0)
-	{
-		temp.x /= w; temp.y /= w; temp.z /= w;
-	}
+    if (w != 0.0)
+    {
+        temp.x /= w; temp.y /= w; temp.z /= w;
+    }
     return temp;
 }
 
-/**
- * 
- * @param {List} p1 
- * @param {List} p2 
- * @param {List} p3 
- * @returns 
- */
 function GetTriangle(p1, p2, p3)
 {
     return new triangle(new vector3(p1[0], p1[1], p1[2]), new vector3(p2[0], p2[1], p2[2]), new vector3(p3[0], p3[1], p3[2]));
@@ -133,7 +137,47 @@ function GetMeshFromOBJ(objStr)
     return returnmesh;
 }
 
+//adds text box into desmos
+function AddComment(id, comment)
+{
+    let curState = calculator.getState();
+    curState.expressions.list.push({id: id, type: 'text', text: comment})
+    calculator.setState(curState);
+}
+
+function Initialize()
+{
+    //adds sliders and text boxes so user can control it
+    //options 
+    AddComment('opt', '   ======DISPLAY OPTIONS======');
+
+    AddComment('opacity', '-------Fill Opacity-------');
+    calculator.setExpression({id: 'slid1', latex: 'o = 100', sliderBounds: { min: '0', max: '100', step: '1' }});
+
+    AddComment('thickness', '-------Line Thinckness-------')
+    calculator.setExpression({id: 'slid2', latex: 't = 1', sliderBounds: { min: '1', max: '10', step: '1' }});
+
+    AddComment('labelvert', '-------Label Verticies (0 = false, 1 = true)-------')
+    calculator.setExpression({id: 'slid3', latex: 'v = 0', sliderBounds: { min: '0', max: '1', step: '1' }});
+
+    //rotation
+    AddComment('rotopt', '======ROTATION======');
+
+    AddComment('xrot', '-------X Rotation-------');
+    calculator.setExpression({id: 'slid4', latex: 'j = 0', sliderBounds: { min: '0', max: '360' }});
+
+    AddComment('yrot', '-------Y Rotation-------');
+    calculator.setExpression({id: 'slid5', latex: 'k = 0', sliderBounds: { min: '0', max: '360' }});
+
+    AddComment('zrot', '-------Z Rotation-------');
+    calculator.setExpression({id: 'slid6', latex: 'l = 0', sliderBounds: { min: '0', max: '360' }});
+
+    AddComment('autorot', '=====Auto Rotate=====')
+    calculator.setExpression({id: 'slid7', latex: 'a = 1', sliderBounds: { min: '0', max: '1', step: '1' }});
+}
+
 //---------------------------------------ACTUAL RENDERING CODE---------------------------------------
+Initialize();
 let vCamera = new vector3()
 let light_direction = new vector3(-1.0, 0.5, -1.0)
 //normalize light direction (or else the lighting will be extremely overdone)
@@ -147,14 +191,12 @@ let hasReadFile = false;
 
 //main loop
 setInterval(function() {
+    let exprs = calculator.getExpressions();
     //----HTML UPDATE----
-    let opacity = document.getElementById('opacity').value;
-    document.getElementById('opacitytext').innerHTML = opacity.toString() + '%';
+    let opacity = exprs[3].latex.split(' ')[2];
+    let lineThickness = exprs[5].latex.split(' ')[2];
+    let labelVerts = exprs[7].latex.split(' ')[2] == 1;
 
-    let lineThickness = document.getElementById('linethick').value;
-    document.getElementById('linethicktext').innerHTML = lineThickness.toString() + ' pixels'; 
-
-    let labelVerts = document.getElementById('labelverts').checked;
     let labeledCoords = [];
 
     //read upload file
@@ -164,11 +206,8 @@ setInterval(function() {
         fileReader.onload=function(){
             if(!hasReadFile)
             {
-                console.log(meshCube.tris);
-                console.log("owo");
                 hasReadFile = true;
                 meshCube = GetMeshFromOBJ(fileReader.result.toString());
-                console.log(meshCube.tris);
             }
         }
         fileReader.readAsText(this.files[0]);
@@ -179,24 +218,58 @@ setInterval(function() {
     ElapsedTime += FrameDelay;
     let TimeScale = 3;
 
+    //handle rotations
+    autoRotate = exprs[16].latex.split(' ')[2] == 1;
+    if(autoRotate)
+    {
+        modelRotX += FrameDelay;
+        modelRotY += FrameDelay;
+        modelRotZ += FrameDelay;
+
+        //if rotation > 360 degrees, subtract 360 degrees so that it always stays between 0-360 degrees
+        if(modelRotX > FullRotRad) { modelRotX -= FullRotRad } if(modelRotX < -FullRotRad) { modelRotX += FullRotRad }
+        if(modelRotY > FullRotRad) { modelRotY -= FullRotRad } if(modelRotY < -FullRotRad) { modelRotY += FullRotRad }
+        if(modelRotZ > FullRotRad) { modelRotZ -= FullRotRad } if(modelRotZ < -FullRotRad) { modelRotZ += FullRotRad }
+
+        calculator.setExpression({id: 'slid4', latex: 'j = ' + modelRotX * Rad2Deg});
+        calculator.setExpression({id: 'slid5', latex: 'k = ' + modelRotX * Rad2Deg});
+        calculator.setExpression({id: 'slid6', latex: 'l = ' + modelRotX * Rad2Deg});
+    }
+    else
+    {
+        //get rotation from sliders in desmos
+        modelRotX = exprs[10].latex.split(' ')[2] * Deg2Rad;
+        modelRotY = exprs[12].latex.split(' ')[2] * Deg2Rad;
+        modelRotZ = exprs[14].latex.split(' ')[2] * Deg2Rad;
+    }
+
     let matRotZ = new mat4x4();
+    let matRotY = new mat4x4();
     let matRotX = new mat4x4();
 
     //rotation Z
-    matRotZ.m[0][0] = Math.cos(ElapsedTime * TimeScale);
-    matRotZ.m[0][1] = Math.sin(ElapsedTime * TimeScale);
-    matRotZ.m[1][0] = -Math.sin(ElapsedTime * TimeScale);
-    matRotZ.m[1][1] = Math.cos(ElapsedTime * TimeScale);
-    matRotZ.m[2][2] = 1;
-    matRotZ.m[3][3] = 1;
+    matRotZ.m[0][0] = Math.cos(modelRotZ);
+    matRotZ.m[0][1] = Math.sin(modelRotZ); 
+    matRotZ.m[1][0] = -Math.sin(modelRotZ);
+    matRotZ.m[1][1] = Math.cos(modelRotZ);
+    matRotZ.m[2][2] = 1.0;
+    matRotZ.m[3][3] = 1.0;
+
+    //rotation y
+    matRotY.m[0][0] = Math.cos(modelRotY)
+    matRotY.m[1][1] = 1.0;
+    matRotY.m[2][0] = Math.sin(modelRotY) 
+    matRotY.m[0][2] = -Math.sin(modelRotY)
+    matRotY.m[2][2] = Math.cos(modelRotY)
+    matRotY.m[3][3] = 1.0;
 
     //rotation X
-    matRotX.m[0][0] = 1;
-    matRotX.m[1][1] = Math.cos(ElapsedTime * 0.5 * TimeScale);
-    matRotX.m[1][2] = Math.sin(ElapsedTime * 0.5 * TimeScale);
-    matRotX.m[2][1] = -Math.sin(ElapsedTime * 0.5 * TimeScale);
-    matRotX.m[2][2] = Math.cos(ElapsedTime * 0.5 * TimeScale);
-    matRotX.m[3][3] = 1;
+    matRotX.m[0][0] = 1.0;
+    matRotX.m[1][1] = Math.cos(modelRotX);
+    matRotX.m[1][2] = Math.sin(modelRotX);
+    matRotX.m[2][1] = -Math.sin(modelRotX);
+    matRotX.m[2][2] = Math.cos(modelRotX);
+    matRotX.m[3][3] = 1.0;
 
     //triangles to sort later
     let vecTrianglesToRaster = [];
@@ -209,24 +282,31 @@ setInterval(function() {
         let triTranslated = new triangle();
         let triProjected = new triangle();
         let triRotatedZ = new triangle();
-        let triRotatedZX = new triangle();
+        let triRotatedZY = new triangle();
+        let triRotatedZYX = new triangle();
 
         //rotate z
         triRotatedZ.p[0] = MultiplyMatrixVector(tri.p[0], matRotZ);
         triRotatedZ.p[1] = MultiplyMatrixVector(tri.p[1], matRotZ);
         triRotatedZ.p[2] = MultiplyMatrixVector(tri.p[2], matRotZ);
+        
+        //rotate y
+        triRotatedZY = JSON.parse(JSON.stringify(triRotatedZ));
+        triRotatedZY.p[0] = MultiplyMatrixVector(triRotatedZ.p[0], matRotY);
+        triRotatedZY.p[1] = MultiplyMatrixVector(triRotatedZ.p[1], matRotY);
+        triRotatedZY.p[2] = MultiplyMatrixVector(triRotatedZ.p[2], matRotY);
 
         //rotate x
-        triRotatedZX = JSON.parse(JSON.stringify(triRotatedZ));
-        triRotatedZX.p[0] = MultiplyMatrixVector(triRotatedZ.p[0], matRotX);
-        triRotatedZX.p[1] = MultiplyMatrixVector(triRotatedZ.p[1], matRotX);
-        triRotatedZX.p[2] = MultiplyMatrixVector(triRotatedZ.p[2], matRotX);
+        triRotatedZYX = JSON.parse(JSON.stringify(triRotatedZY));
+        triRotatedZYX.p[0] = MultiplyMatrixVector(triRotatedZY.p[0], matRotX);
+        triRotatedZYX.p[1] = MultiplyMatrixVector(triRotatedZY.p[1], matRotX);
+        triRotatedZYX.p[2] = MultiplyMatrixVector(triRotatedZY.p[2], matRotX);
 
         //translate forward away from camera
-        triTranslated = triRotatedZX;
-        triTranslated.p[0].z = triRotatedZX.p[0].z + 3.0;
-        triTranslated.p[1].z = triRotatedZX.p[1].z + 3.0;
-        triTranslated.p[2].z = triRotatedZX.p[2].z + 3.0;
+        triTranslated = JSON.parse(JSON.stringify(triRotatedZYX));
+        triTranslated.p[0].z = triRotatedZYX.p[0].z + 5.0;
+        triTranslated.p[1].z = triRotatedZYX.p[1].z + 5.0;
+        triTranslated.p[2].z = triRotatedZYX.p[2].z + 5.0;
 
         //get normal using some weird math wizardry (wtf is a cross product?????)
         let normal = new vector3();
@@ -258,9 +338,9 @@ setInterval(function() {
             brightnessRGB = '#' + brightnessRGB + brightnessRGB + brightnessRGB;
 
             //project
-            triProjected.p[0] = MultiplyMatrixVector(triRotatedZX.p[0], matProj);
-            triProjected.p[1] = MultiplyMatrixVector(triRotatedZX.p[1], matProj);
-            triProjected.p[2] = MultiplyMatrixVector(triRotatedZX.p[2], matProj);
+            triProjected.p[0] = MultiplyMatrixVector(triTranslated.p[0], matProj);
+            triProjected.p[1] = MultiplyMatrixVector(triTranslated.p[1], matProj);
+            triProjected.p[2] = MultiplyMatrixVector(triTranslated.p[2], matProj);
             
             //bring the cube into the screen
             triProjected.p[0].x += 1.0; triProjected.p[0].y += 1.0;
@@ -294,7 +374,6 @@ setInterval(function() {
         }
     }
     
-    //for some reason, sorting makes the lighting break. (FIX ME)
     vecTrianglesToRaster.sort((t1, t2) => ( t1.distanceToCam > t2.distanceToCam ? -1 : 1));
     
     for(let i = 0; i < vecTrianglesToRaster.length; i++)
